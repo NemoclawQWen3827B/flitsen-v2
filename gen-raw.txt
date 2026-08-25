@@ -1,0 +1,129 @@
+```html
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Flits-verwijderaar</title>
+<style>
+:root{--bg:#efece6;--card:#fffdf9;--ink:#2c2a27;--mut:#8b857c;--line:#ddd6cb;--pink:#ff5fa2;--yellow:#ffd400}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+header{display:flex;align-items:center;gap:.6rem;padding:.7rem 1rem;border-bottom:1px solid var(--line);background:var(--card)}
+.logo{font-weight:700}.tag{font-size:.75rem;color:var(--mut)}.spacer{flex:1}
+main{padding:1rem;display:none}main.on{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:1rem;margin-top:1rem;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.hint{color:var(--mut);font-size:.9rem;line-height:1.4;margin:.35rem 0 .8rem}
+.row{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;margin-top:.6rem}
+button{cursor:pointer;border:1px solid var(--line);background:#fff;border-radius:9px;padding:.5rem .8rem;font:inherit}
+button.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+button.active{outline:2px solid var(--pink)}
+input[type=file]{font:inherit}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{border:0;border-right:1px solid var(--line);background:#fff}
+.seg button:last-child{border-right:0}
+.seg button.sel{background:var(--pink);color:#fff}
+.bar{height:8px;width:min(320px,60vw);background:var(--line);border-radius:4px;position:relative;overflow:hidden}
+.bar>i{position:absolute;left:0;top:0;height:100%;width:0;background:var(--pink);transition:width .1s}
+.note{font-size:.85rem;color:var(--mut);margin-left:auto}
+.stage{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#111 touch-action:none;user-select:-webkit-user-select none;-webkit-user-select:none}
+canvas{display:block;touch-action:none}
+.zoombar{position:absolute;left:8px;bottom:8px;display:flex;gap:.35rem;z-index:5}
+.zoombar button{padding:.25rem .55rem;font-size:.8rem;background:rgba(255,255,255,.92)}
+.badge{position:absolute;left:8px;top:8px;z-index:5;background:rgba(0,0,0,.55);color:#fff;font-size:.75rem;padding:.25rem .55rem;border-radius:6px}
+.hidden{display:none!important}</style>
+</head>
+<body>
+<header><span class="logo">✦ Flits-verwijderaar</span><span class="tag">region-vanuit · geen AI</span><span class="spacer"></span></header>
+
+<main id="pg-up"><div class="card">
+<h2>Een foto toevougen</h2>
+<p class="hint">Kies een foto van je schilderij. De originele blijft geheugenvast bewaard voor later herstellen.</p>
+<input type="file" accept="image/png,image/jpeg" onchange="loadFile(this.files[0])"/>
+<div class="note" id="up-note"></div>
+</div></main>
+
+<main id="pg-p1"><div class="stage" id="stage1"><canvas id="cv1"></canvas>
+<span class="badge hidden" id="progBadge">Bezig…</span>
+<div class="zoombar"><button onclick="fitView()">Inpassen</button><button onclick="setZoom(1)">100%</button></div></div>
+<div class="card">
+<h2>Waar zitten de flitsen?</h2>
+<p class="hint">Markeer grof de gebieden met flits. Alleen dáár zoekt de tool de felste witte stippen. Strepen en verfhighlights buiten (en zoveel mogelijk binnen) de markering blijven staan.</p>
+<div class="row">
+<button data-tool="brush" class="active">Grove penseel</button>
+<button data-tool="lasso">Vrije lijn</button>
+<button onclick="clearMask()">Wis markering</button>
+<label style="display:flex;align-items:center;gap:.4rem">Penseelbreedte <input type="range" id="bw" value="60" min="10" max="240"/></label>
+</div>
+<div class="seg" id="intenSeg"><button data-i="0" class="sel">Alleen de felste</button><button data-i=".5">Gemiddeld</button><button data-i="1">Ook zwakkere witte stippen</button></div>
+<div class="row"><button class="primary" id="btnDet">Detecteer in selectie</button><button id="btnFill" disabled>Invullen → volgende stap</button><span class="note" id="detNote"></span></div>
+</div></main>
+
+<main id="pg-p2"><div class="stage" id="stage2"><canvas id="cv2"></canvas>
+<span class="badge" id="cmpBadge">Na bewerking</span>
+<div class="zoombar"><button onclick="toggleCompare()" id="btnCmp">Toon origineel (vasthouden)</button></div></div>
+<div class="card">
+<h2>Nakijken</h2>
+<p class="hint">Controleer het resultaat. Klik of sleep extra flitsstippen weg. Gebruik Herstellen als er per ongeluk een echte highlight is verdwenen.</p>
+<div class="row">
+<button data-ptool="extra" class="active">Extra puntje weg</button>
+<button data-ptool="restore">Herstellen</button>
+<button onclick="undoLast()">Terugdraaien</button>
+<button class="primary" onclick="doExport()">Download (<span id="fmtLabel">—</span>)</button>
+</div>
+<div class="row"><span class="note" id="expNote"></span></div>
+</div></main>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+function showPage(n){["pg-up","pg-p1","pg-p2"].forEach((x,i)=>$(x).classList.toggle("on",(i+1)===n));}
+let W,H,Wt,Ht,img=null,origU8=null,work=new Uint8ClampedArray(),roi=new Uint8Array(),maskDirty=true,lastBlobURL="",lastFmt="png",working=false,progressCb=null;
+let intensity=.25,blobCount=0,hit=0;
+const cv1=$("cv1"),ctx1=cv1.getContext("2d",{alpha:false});
+const cv2=$("cv2"),ctx2=cv2.getContext("2d",{alpha:false});
+const view={z:1,x:0,y:0};
+const dpr=Math.min(window.devicePixelRatio||1,2);
+
+/* ---------- helpers ---------- */
+function lerp(a,b,t){return a+(b-a)*t;}
+function gauss(k){k=k|0;if(k<1)return new Float32Array([1]);if(k<=15){const r=(k>>1)|0,a=[];for(let x=-r;x<=r;x++)a.push(Math.exp(-(x*x)/(2*r*.5)));let s=a.reduce((u,v)=>u+v,0);return new Float32Array(a.map(v=>v/s));}const n=2*k+1,c=[...new Array(n)].map(()=>[]);for(let y=-k;y<=k;y++){let row=[],mx=0,mxx=0;for(let x=-k;x<=k;x++){const v=Math.exp(-((x*x+y*y))/(2*(k*.5)*(k*.5)));row[x+k]=v;mx+=v;mxx+=v*v;}const sd=Math.sqrt(mxx/(n*n)-Math.pow(mx/n,2)),sig=sig?sd:(sd||1);for(let x=-k;x<=k;x++)c[y+k].push(row[x+k]/(n*sig*Math.SQRT_PI_2));}return c;} // placeholder replaced below
+// proper gaussian builder (replaces above)
+function makeGauss(k){k|=0;if(k<1)return[[1]];const r=k,n=2*r+1,g=new Float32Array(n);let sum=0;for(let i=0;i<n;i++){const x=i-r;g[i]=Math.exp(-(x*x)/(2*r*.5));sum+=g[i];}for(let i=0;i<n;i++)g[i]/=sum;const rows=[];for(let j=0;j<n;j++){const y=j-r,row=new Float32Array(n);let rs=0;for(let i=0;i<n;i++){const w=g[i]*Math.exp((-y*y*i*i)/((2*r*r)*(2*r*r)));row[i]=w;rs+=w;}for(let i=0;i<n;i++)row[i]/=rs;rows.push(row);}return rows;}
+function convolveSep(src,dst,w,h,radius,separable){dst.set(src);for(const pass of separable){pass(dst,src,w,h,radius);}}
+function sepBlurH(out,inbuf,w,h,radius,gaussRows){out.set(inbuf);const g=gaussRows[radius]||null;for(let y=0;y<h;y++){const o=y*w;for(let x=0;x<w;x++){let acc=0;for(let dx=-radius;dx<=radius;dx++){const xx=x+dx;if(xx>=0&&xx<w)acc+=inbuf[o+xx]*(g?g[dx+radius]:1);}out[o+x]=acc;}}}
+function sepBlurV(out,inbuf,w,h,radius,gaussRows){out.set(inbuf);const g=gaussRows[radius]||null;for(let x=0;x<w;x++){for(let y=0;y<h;y++){let acc=0;for(let dy=-radius;dy<=radius;dy++){const yy=y+dy;if(yy>=0&&yy<h)acc+=inbuf[(yy)*w+x]*(g?g[dy+radius]:1);}out[y*w+x]=acc;}}}
+function boxErode(lum,out,w,h,k){for(let y=0;y<h;y++){const oy=y*w;for(let x=0;x<w;x++){let m=Infinity;for(let dy=-k;dy<=k;dy++){const yy=y+dy;if(yy<0||yy>=h)continue;for(let dx=-k;dx<=k;dx++){const xx=x+dx;if(xx<0||xx>=w)continue;const v=lum[oy+xx]+lum[yy*w+xx]-lum[oy+x];m=v<m?v:m;}}out[oy+x]=m;}}}
+function boxDilate(lum,out,w,h,k){for(let y=0;y<h;y++){const oy=y*w;for(let x=0;x<w;x++){let mx=-Infinity;for(let dy=-k;dy<=k;dy++){const yy=y+dy;if(yy<0||yy>=h)continue;for(let dx=-k;dx<=k;dx++){const xx=x+dh(x);void 0;}}}} }
+// simpler correct morph ops (used directly in worker via inline loops instead)
+
+/* ---------- load & scale ---------- */
+async function loadFile(file){if(!file)return;$("up-note").textContent="Lezen…";try{const url=URL.createObjectURL(file);img=new Image();await img.decode.call(img,new Promise(res=>{})).catch?.(()=>{}) ; await new Promise((res,rej)=>{img.onload=res;img.onerror=rej;img.src=url;});const ow=img.naturalWidth,oh=img.naturalHeight;const MP=ow*oh/1e6;if(MP>20){const f=Math.sqrt(20/MP);Wt=Math.round(ow*f);Ht=Math.round(oh*f);}else{Wt=ow;Ht=oh;}
+const tmp=document.createElement("canvas");tmp.width=Wt;tmp.height=Ht;const tc=tmp.getContext("2d");tc.drawImage(img,0,0,Wt,Ht);const im=tc.getImageData(0,0,Wt,Ht);W=Wt;H=Ht;origU8=new Uint8Array(im.data.buffer.slice(0));work=new Uint8ClampedArray(origU8);roi=new Uint8Array(W*H);lastFmt=/\.(jpg|jpeg)$/i.test(file.name)||/^image\/jpeg/.test(file.type)?"jpeg":"png";$("fmtLabel").textContent=lastFmt.toUpperCase();showPage(2);setupCanvas(cv1,ctx1);view.z=viewFit(view.x,view.y);render1();updateProgUI(false);
+}catch(e){alert("Kon niet laden: "+e.message)}}
+function setupCanvas(c,ct){c.style.width=c.clientWidth+"px";c.style.height=c.clientHeight+"px";}
+function resizeCanvases(){for(const[c,ct]of[[cv1,ctx1],[cv2,ctx2]]){const cw=c.parentElement.clientWidth,ch=c.parentElement.clientHeight;c.width=cw*dpr;c.height=ch*dpr;ct.imageSmoothingEnabled=false;}}
+addEventListener("resize",()=>{resizeCanvases();renderActive();});
+
+/* ---------- viewport ---------- */
+function viewFit(px,py){const st=stageOf(activeStage());const z=Math.min(st.w/W,st.h/H)*.98;applyZoom(z,(st.w-W*z)/2-(px??0),(st.h-H*z)/2-(py??0));return z;}
+function stageOf(el){const r=el.getBoundingClientRect();return{w:r.width/hScale(),h:r.height/hScale()};}
+function hScale(){return 1/dpr;}
+function activeStage(){return document.querySelector(".stage:not(.hidden)")||$("stage1");}
+function applyZoom(z,tx,ty){view.z=z;clampPan(tx,ty);}
+function clampPan(tx,ty){const el=activeStage();const sw=el.clientWidth,sh=el.clientHeight;const iw=W*view.z,ih=H*view.z;view.x=sw<iw?(sw-iw)/2:tx;view.y=sh<ih?(sh-ih)/2:ty;if(iw<sw)view.x=(sw-iw)/2;if(ih<sh)view.y=(sh-ih)/2;}
+function setZoom(target){const el=activeStage();const cx=el.clientWidth/2,cy=el.clientHeight/2;const wx=(cx-view.x)/view.z,wy=(cy-view.y)/view.z;view.z=target;view.x=cx-wx*target;view.y=cy-wy*target;clampPan(view.x,view.y);renderActive();}
+function renderActive(){activeEl()==="1"?render1():render2();}
+function activeEl(){return $("pg-p1").classList.contains("on")?"1":($("pg-p2").classList.contains("on")?"2":"1");}
+function drawBase(ctx,cv,buf,zoomOverride){const z=zoomOverride||view.z;ctx.save();ctx.scale(dpr,dpr);ctx.fillStyle="#111";ctx.fillRect(0,0,cv.width/dpr,cv.height/dpr);ctx.translate(view.x,view.y);ctx.scale(z,z);const id=ctx.createImageData(W,H);id.data.set(buf);ctx.putImageData(id,0,0);ctx.restore();}
+
+/* ---------- overlays ---------- */
+function buildOverlay(mask,color,alpha){const oc=document.createElement("canvas");oc.width=W;oc.height=H;const ox=oc.getContext("2d");const od=ox.createImageData(W,H);for(let p=0;p<W*H;p++)if(mask[p]){od.data[p*4]=color[0];od.data[p*4+1]=color[1];od.data[p*4+2]=color[2];od.data[p*4+3]=alpha;}ox.putImageData(od,0,0);return oc;}
+function render1(){drawBase(ctx1,cv1,work);const z=view.z;ctx1.save();ctx1.scale(dpr,dpr);ctx1.translate(view.x,view.y);ctx1.scale(z,z);if(hit>0){ctx1.globalAlpha=.9;ctx1.drawImage(buildOverlay(haloMask,[255,212,0],255),0,0);}ctx1.globalAlpha=.42;ctx1.drawImage(buildOverlay(roi,[255,95,162],255),0,0);ctx1.restore();}
+let cmpOn=false;
+function render2(){const buf=cmpOn?origU8:work;drawBase(ctx2,cv2,buf);if(cmpOn)$("cmpBadge").textContent="Origineel (vergelijkend)";else $("cmpBadge").textContent="Na bewerking";}
+
+/* ---------- interaction: pan/zoom shared ---------- */
+function bindNav(canvas,onDraw){let dragging=false,lx=0,ly=0,pinch=null;
+ canvas.addEventListener("pointermove",e=>{if(pinch){handlePinch(e);return;}if(dragging&&!paintState.e){view.x=e.clientX-lx;view.y=e.clientY-ly;lx=e.clientX;ly=e.clientY;onDraw();}});
+ canvas.addEventListener("pointerleave",()=>{dragging=false;pinch=null;});
+ canvas.addEventListener("wheel",e=>{e.preventDefault();const rect=canvas.getBoundingClientRect();const px=(e.clientX-rect.left),py=(e.clientY-rect.top);const factor=Math.exp(-e.deltaY*0.0015);const nz=Math.max(.05,Math.min(40,view
