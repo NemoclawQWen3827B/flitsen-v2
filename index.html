@@ -6,66 +6,160 @@
 <title>Flits-verwijderaar</title>
 <style>
 :root {
-  --bg: #efece6;
-  --card: #fffdf9;
-  --ink: #2c2a27;
-  --mut: #8b857c;
-  --line: #ddd6cb;
-  --pink: #ff5fa2;
-  --yellow: #ffd400;
+  --bg: #f3eee6;
+  --bg-2: #e8e0d3;
+  --card: #fffaf3;
+  --ink: #2a2622;
+  --mut: #5c554d;
+  --line: #e0d5c6;
+  --pink: #e85a8c;
+  --pink-soft: #fde8f0;
+  --yellow: #ffd34d;
+  --brass: #b0894a;
+  --serif: "Iowan Old Style", Palatino, "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --sans: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  --radius: 14px;
+  --shadow: 0 1px 2px rgba(42,38,34,.04), 0 8px 24px rgba(42,38,34,.05);
 }
 * { box-sizing: border-box; }
+html, body { min-height: 100%; }
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  background: var(--bg);
+  font-family: var(--sans);
+  background:
+    radial-gradient(1200px 500px at 10% -10%, #fff8ee 0%, transparent 55%),
+    linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
   color: var(--ink);
+  line-height: 1.45;
 }
 header {
   display: flex;
   align-items: center;
-  gap: .6rem;
-  padding: .7rem 1rem;
+  gap: .75rem;
+  padding: .85rem 1.25rem;
   border-bottom: 1px solid var(--line);
-  background: var(--card);
+  background: rgba(255,250,243,.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 20;
 }
-.logo { font-weight: 700; }
+.logo {
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: -.01em;
+}
 .tag { font-size: .75rem; color: var(--mut); }
 .spacer { flex: 1; }
-main { padding: 1rem; display: none; }
+.steps {
+  display: flex;
+  gap: .15rem;
+  font-size: .78rem;
+  color: var(--mut);
+}
+.step {
+  padding: .35rem .7rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+.step.active {
+  color: var(--ink);
+  font-weight: 600;
+  background: var(--pink-soft);
+  border-color: #f5c5d6;
+}
+main { padding: 1rem 1.25rem 2.2rem; display: none; max-width: 1180px; margin: 0 auto; }
 main.on { display: block; }
+h2 {
+  font-family: var(--serif);
+  font-size: 1.45rem;
+  font-weight: 600;
+  margin: 0 0 .45rem;
+  letter-spacing: -.015em;
+}
 .card {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 1rem;
+  border-radius: var(--radius);
+  padding: 1.25rem 1.35rem;
   margin-top: 1rem;
-  box-shadow: 0 1px 2px rgba(0,0,0,.04);
+  box-shadow: var(--shadow);
 }
-.hint { color: var(--mut); font-size: .9rem; line-height: 1.45; margin: .35rem 0 .8rem; }
-.row { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; margin-top: .6rem; }
+.hint { color: var(--mut); font-size: .95rem; line-height: 1.5; margin: 0 0 1rem; }
+.row { display: flex; gap: .55rem; flex-wrap: wrap; align-items: center; margin-top: .7rem; }
 button {
   cursor: pointer;
   border: 1px solid var(--line);
   background: #fff;
-  border-radius: 9px;
-  padding: .5rem .8rem;
+  border-radius: 999px;
+  padding: .5rem .95rem;
   font: inherit;
+  color: var(--ink);
+  transition: background .15s, border-color .15s, transform .12s;
 }
-button:disabled { opacity: .45; cursor: not-allowed; }
-button.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
-button.active { outline: 2px solid var(--pink); }
-input[type=file] { font: inherit; }
+button:hover:not(:disabled) { border-color: #cfc3b3; background: #fffdf9; }
+button:disabled { opacity: .42; cursor: not-allowed; }
+button.primary {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+}
+button.primary:hover:not(:disabled) { background: #3d3833; }
+button.active {
+  background: var(--pink-soft);
+  border-color: var(--pink);
+  color: var(--ink);
+  outline: none;
+}
+button:focus-visible, input:focus-visible, .dropzone:focus-visible {
+  outline: 2px solid var(--pink);
+  outline-offset: 2px;
+}
 input[type=range] { accent-color: var(--pink); }
 .note { font-size: .85rem; color: var(--mut); }
+.note.ok { color: #2f6a48; font-weight: 600; }
+.note.err { color: #8b2e2e; font-weight: 600; }
+.dropzone {
+  position: relative;
+  border: 2px dashed #d4c6b4;
+  border-radius: var(--radius);
+  padding: 2.4rem 1.2rem;
+  text-align: center;
+  background: #fff8ef;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+}
+.dropzone:hover, .dropzone.dragover {
+  border-color: var(--pink);
+  background: var(--pink-soft);
+}
+.dropzone input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+.drop-ico {
+  font-family: var(--serif);
+  font-size: 1.8rem;
+  color: var(--brass);
+  margin-bottom: .35rem;
+}
+.drop-title { font-weight: 600; }
+.drop-sub { color: var(--mut); font-size: .9rem; margin-top: .25rem; }
 .stage {
   position: relative;
   width: 100%;
-  height: min(68vh, 760px);
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  height: min(74vh, 840px);
+  border: 1px solid #1a1714;
+  border-radius: 12px;
   overflow: hidden;
-  background: #161513;
+  background: #1a1714;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -80,39 +174,66 @@ input[type=range] { accent-color: var(--pink); }
 }
 .zoombar {
   position: absolute;
-  left: 8px;
-  bottom: 8px;
+  left: 10px;
+  bottom: 10px;
   display: flex;
   gap: .35rem;
   z-index: 5;
 }
+.badge, .zoombar button {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
 .zoombar button {
-  padding: .25rem .55rem;
+  padding: .3rem .65rem;
   font-size: .8rem;
-  background: rgba(255,255,255,.92);
+  background: rgba(255,250,243,.88);
+  border-color: rgba(255,255,255,.35);
+  color: var(--ink);
 }
 .badge {
   position: absolute;
-  left: 8px;
-  top: 8px;
+  left: 10px;
+  top: 10px;
   z-index: 5;
-  background: rgba(0,0,0,.55);
-  color: #fff;
+  background: rgba(255,250,243,.88);
+  color: var(--ink);
   font-size: .75rem;
-  padding: .25rem .55rem;
-  border-radius: 6px;
+  padding: .3rem .6rem;
+  border-radius: 999px;
+  border: 1px solid rgba(42,38,34,.1);
 }
 .hidden { display: none !important; }
 .inten {
   display: grid;
   grid-template-columns: auto 1fr auto;
-  gap: .6rem;
+  gap: .7rem;
   align-items: center;
-  margin-top: .8rem;
-  font-size: .85rem;
+  margin-top: 1rem;
+  padding-top: .85rem;
+  border-top: 1px solid var(--line);
+  font-size: .82rem;
   color: var(--mut);
 }
 .inten input { width: 100%; }
+.kicker { font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--brass); margin: 0 0 .35rem; }
+.brush-lab { display: flex; align-items: center; gap: .45rem; }
+@media (max-width: 720px) {
+  header { flex-wrap: wrap; }
+  .steps { width: 100%; order: 3; justify-content: space-between; }
+  .step { padding: .5rem .55rem; min-height: 44px; display: inline-flex; align-items: center; }
+  .stage { height: 52vh; }
+  .row { flex-direction: column; align-items: stretch; }
+  .row button, .row label, .brush-lab { width: 100%; min-height: 44px; }
+  .zoombar button { min-height: 44px; padding: .45rem .85rem; }
+  .inten { grid-template-columns: 1fr; text-align: center; }
+}
+@media (max-width: 480px) {
+  .tag { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  button, .dropzone { transition: none; }
+}
 </style>
 </head>
 <body>
@@ -120,13 +241,24 @@ input[type=range] { accent-color: var(--pink); }
   <span class="logo">✦ Flits-verwijderaar</span>
   <span class="tag">region-eerst · geen AI</span>
   <span class="spacer"></span>
+  <nav class="steps" aria-label="Stappen">
+    <span class="step active" data-step="1">1. Foto</span>
+    <span class="step" data-step="2">2. Markeren</span>
+    <span class="step" data-step="3">3. Nakijken</span>
+  </nav>
 </header>
 
 <main id="pg-up">
   <div class="card">
+    <p class="kicker">Stap 1</p>
     <h2>Een foto toevoegen</h2>
     <p class="hint">Kies een JPEG of PNG van je schilderij. Het origineel blijft in het geheugen voor later herstellen. Niets verlaat dit apparaat.</p>
-    <input id="fileIn" type="file" accept="image/png,image/jpeg"/>
+    <label class="dropzone" id="dropzone" for="fileIn">
+      <input id="fileIn" type="file" accept="image/png,image/jpeg"/>
+      <div class="drop-ico" aria-hidden="true">◻</div>
+      <div class="drop-title">Sleep een foto hierheen</div>
+      <div class="drop-sub">of klik om te kiezen · plakken mag ook</div>
+    </label>
     <div class="note" id="up-note"></div>
   </div>
 </main>
@@ -141,6 +273,7 @@ input[type=range] { accent-color: var(--pink); }
     </div>
   </div>
   <div class="card">
+    <p class="kicker">Stap 2</p>
     <h2>Waar zitten de flitsen?</h2>
     <p class="hint">Markeer grof de gebieden met flits. Alleen dáár zoekt de tool de felste witte stippen. Strepen en verfhighlights buiten (en zoveel mogelijk binnen) de markering blijven staan.</p>
     <div class="row">
@@ -148,7 +281,7 @@ input[type=range] { accent-color: var(--pink); }
       <button type="button" data-tool="lasso">Vrije lijn</button>
       <button type="button" data-tool="pan">Verschuiven</button>
       <button type="button" id="btnClear">Wis markering</button>
-      <label class="row" style="margin:0">Penseelbreedte <input type="range" id="bw" value="60" min="10" max="240"/></label>
+      <label class="brush-lab">Penseelbreedte <input type="range" id="bw" value="60" min="10" max="240"/></label>
     </div>
     <div class="inten">
       <span>Alleen de felste</span>
@@ -174,6 +307,7 @@ input[type=range] { accent-color: var(--pink); }
     </div>
   </div>
   <div class="card">
+    <p class="kicker">Stap 3</p>
     <h2>Nakijken</h2>
     <p class="hint">Controleer het resultaat. Klik of sleep extra flitsstippen weg. Gebruik Herstellen als er per ongeluk een echte highlight is verdwenen.</p>
     <div class="row">
@@ -191,9 +325,22 @@ input[type=range] { accent-color: var(--pink); }
 "use strict";
 
 const $ = (id) => document.getElementById(id);
+function setDetNote(text, kind) {
+  const el = $("detNote");
+  el.textContent = text;
+  el.classList.toggle("ok", kind === "ok");
+  el.classList.toggle("err", kind === "err");
+}
 
 function showPage(n) {
-  ["pg-up", "pg-p1", "pg-p2"].forEach((id, i) => $(id).classList.toggle("on", i + 1 === n));
+  ["pg-up", "pg-p1", "pg-p2"].forEach((id, i) => {
+    const on = (i + 1) === n;
+    $(id).classList.toggle("on", on);
+    $(id).setAttribute("aria-hidden", on ? "false" : "true");
+  });
+  document.querySelectorAll(".step").forEach((el) => {
+    el.classList.toggle("active", Number(el.dataset.step) === n);
+  });
   requestAnimationFrame(() => {
     resizeCanvases();
     if (n === 2) render1();
@@ -836,7 +983,7 @@ let detectWk = null;
 function runDetection() {
   if (working) return;
   if (!hasRoi()) {
-    $("detNote").textContent = "Markeer eerst waar de flits zit.";
+    setDetNote("Markeer eerst waar de flits zit.", "err");
     return;
   }
   working = true;
@@ -865,9 +1012,12 @@ function runDetection() {
     hitCount = e.data.count;
     haloMask = new Uint8Array(e.data.mask);
     refreshHaloOverlay();
-    $("detNote").textContent = hitCount
-      ? ("Gevonden: " + hitCount + " flitsstip" + (hitCount === 1 ? "" : "pen") + ". Klinkt dat goed?")
-      : "Geen flits gevonden in deze markering.";
+    setDetNote(
+      hitCount
+        ? ("Gevonden: " + hitCount + " flitsstip" + (hitCount === 1 ? "" : "pen") + ". Klinkt dat goed?")
+        : "Geen flits gevonden in deze markering. Probeer grover te markeren of de slider naar zwakkere stippen.",
+      hitCount ? "ok" : "err"
+    );
     $("btnFill").disabled = hitCount === 0;
     render1();
   };
@@ -875,7 +1025,7 @@ function runDetection() {
     working = false;
     $("btnDet").disabled = false;
     $("progBadge").classList.add("hidden");
-    $("detNote").textContent = "Detectie mislukt: " + (err.message || "onbekend");
+    setDetNote("Detectie mislukt: " + (err.message || "onbekend"), "err");
     detectWk && detectWk.terminate();
     detectWk = null;
     URL.revokeObjectURL(blobUrl);
@@ -931,7 +1081,7 @@ function doFill() {
   refreshHaloOverlay();
   syncOffscreen();
   $("btnFill").disabled = true;
-  $("detNote").textContent = "Ingevuld. Naar nakijken →";
+  setDetNote("Ingevuld. Naar nakijken →", "ok");
   setTimeout(() => {
     showPage(3);
     fitView();
@@ -1215,6 +1365,31 @@ cv2.addEventListener("pointerup", endPaint2);
 cv2.addEventListener("pointercancel", endPaint2);
 
 $("fileIn").addEventListener("change", (e) => loadFile(e.target.files[0]));
+const dropzone = $("dropzone");
+function stopDrag(e) { e.preventDefault(); e.stopPropagation(); }
+["dragenter", "dragover"].forEach((ev) => dropzone.addEventListener(ev, (e) => {
+  stopDrag(e);
+  dropzone.classList.add("dragover");
+}));
+["dragleave", "drop"].forEach((ev) => dropzone.addEventListener(ev, (e) => {
+  stopDrag(e);
+  dropzone.classList.remove("dragover");
+}));
+dropzone.addEventListener("drop", (e) => {
+  const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if (f) loadFile(f);
+});
+addEventListener("paste", (e) => {
+  const items = e.clipboardData && e.clipboardData.items;
+  if (!items) return;
+  for (const it of items) {
+    if (it.type && it.type.startsWith("image/")) {
+      const f = it.getAsFile();
+      if (f) loadFile(f);
+      break;
+    }
+  }
+});
 $("btnDet").addEventListener("click", runDetection);
 $("btnFill").addEventListener("click", doFill);
 $("btnClear").addEventListener("click", () => {
@@ -1222,7 +1397,7 @@ $("btnClear").addEventListener("click", () => {
   haloMask.fill(0);
   hitCount = 0;
   $("btnFill").disabled = true;
-  $("detNote").textContent = "";
+  setDetNote("", "");
   refreshRoiOverlay();
   refreshHaloOverlay();
   render1();
