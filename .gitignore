@@ -1,0 +1,7 @@
+*.log
+*-raw.txt
+node1-*.json
+node1-err.txt
+__pycache__/
+.DS_Store
+test/photo.png
