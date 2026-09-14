@@ -5,3 +5,5 @@ node1-err.txt
 __pycache__/
 .DS_Store
 test/photo.png
+test/examples/
+test/debug-*.js

@@ -13,7 +13,9 @@ Open the file in a browser (Chrome, Edge, Firefox, Safari). JPEG stays JPEG (qua
 5. **Invullen** fills those specs with a local median of nearby unmasked pixels.
 6. **Nakijken** — pick off leftovers, restore real highlights, undo, export.
 
-Detection never runs outside the painted region. It is not iPhoto retouch: long scratches and canvas weave are rejected.
+Detection never runs outside the painted region. It is not iPhoto retouch: long scratches, canvas weave, hair highlights and painted halos are rejected.
+
+On real painting photos: mark the dark varnish where flash lives, then **Detecteer**. Use the intensity slider if weaker specks remain; pick leftovers off on page 2. Do not paint over a halo or white hair if you can avoid it — those are highlights, not flash.
 
 ## Spec
 
